@@ -44,9 +44,9 @@ page_modules = {
 # Page Accueil
 # -----------------------
 if page == "Accueil":
-    st.title("Bienvenue sur MafiCom")
+    st.title("Bienvenue sur Focus Financier")
     st.markdown("""
-    **MafiCom** est un outil d'analyse des comptes des communes françaises, offrant :
+    **Focus Financier** est un outil d'analyse des comptes des communes françaises, offrant :
 
     - Consultation des données financières : fonctionnement, CAF, fiscalité, endettement, investissements, fonds de roulement
     - Comparaison avec la moyenne de la strate

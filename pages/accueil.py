@@ -18,8 +18,8 @@ page = st.sidebar.selectbox("Choisissez la page :", [
 # Page Accueil
 # -----------------------
 if page == "Accueil":
-    st.title("Bienvenue sur **MafiCom**")
-    st.markdown("""""**MafiCom** est un outil d'analyse des comptes des communes françaises, offrant :
+    st.title("Bienvenue sur **Focus Financier**")
+    st.markdown("""""**Focus Financier** est un outil d'analyse des comptes des communes françaises, offrant :
                 - Consultation des données financières : fonctionnement, CAF, fiscalité, endettement, investissements, fonds de roulement
                 - Comparaison avec la moyenne de la strate
                 - Graphiques interactifs pour visualiser l'évolution dans le temps
