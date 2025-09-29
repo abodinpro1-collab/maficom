@@ -267,27 +267,20 @@ def get_all_commune_data(commune, annees):
     return data
 
 def create_chart_image(df, colonnes, titre):
-    """Crée un graphique Plotly et le sauvegarde comme image temporaire"""
+    """Crée un graphique Plotly et le sauvegarde comme image temporaire (compatible cloud)"""
     if df.empty or not colonnes:
         return None
-    
+
     try:
-        # Vérifier que kaleido est disponible
-        import kaleido
-        
         # Préparation des données pour le graphique
         df_plot = df[colonnes].reset_index().melt(
             id_vars="Année", var_name="Indicateur", value_name="Valeur"
         )
-        
-        # Vérifier qu'il y a des données à afficher
+
         if df_plot.empty or df_plot['Valeur'].isna().all():
             return None
-        
-        # Couleurs personnalisées : bleu foncé et bleu clair
-        colors_palette = ['#1f4e79', '#87ceeb']  # Bleu foncé, bleu clair
-        
-        # Création du graphique Plotly
+
+        colors_palette = ['#1f4e79', '#87ceeb']
         fig = px.line(
             df_plot,
             x="Année",
@@ -297,51 +290,46 @@ def create_chart_image(df, colonnes, titre):
             title=f"Évolution - {titre}",
             color_discrete_sequence=colors_palette
         )
-        
+
         fig.update_traces(mode="lines+markers", line=dict(width=3), marker=dict(size=8))
         fig.update_layout(
-            template="plotly_white", 
+            template="plotly_white",
             hovermode="x unified",
             width=600,
-            height=450,  # Augmenté pour la légende en bas
+            height=450,
             title_x=0.5,
             title_font_size=14,
             font=dict(size=11),
             showlegend=True,
             legend=dict(
-                orientation="h",  # Légende horizontale
+                orientation="h",
                 yanchor="top",
-                y=-0.15,  # Positionner en dessous du graphique
+                y=-0.15,
                 xanchor="center",
                 x=0.5,
                 font=dict(size=10)
             ),
-            margin=dict(l=60, r=60, t=60, b=80)  # Marges ajustées pour la légende
+            margin=dict(l=60, r=60, t=60, b=80)
         )
-        
-        # Sauvegarder l'image temporairement
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
-        temp_path = temp_file.name
-        temp_file.close()
-        
-        # Export de l'image avec gestion d'erreur
-        pio.write_image(fig, temp_path, format='png', width=600, height=450, scale=2, engine='kaleido')
-        
-        # Vérifier que le fichier a été créé
+
+        # 🔑 Utiliser fig.to_image() pour générer l'image en mémoire (au lieu de write_image direct)
+        img_bytes = fig.to_image(format="png", width=600, height=450, scale=2)
+
+        # Sauvegarde dans un fichier temporaire lisible par ReportLab
+        temp_path = tempfile.mktemp(suffix=".png")
+        with open(temp_path, "wb") as f:
+            f.write(img_bytes)
+
         if os.path.exists(temp_path) and os.path.getsize(temp_path) > 0:
             print(f"✅ Graphique créé: {titre} -> {temp_path}")
             return temp_path
         else:
-            print(f"❌ Échec création: {titre}")
+            st.warning(f"⚠️ Graphique {titre} non généré (fichier vide)")
             return None
-    
-    except ImportError:
-        print("❌ Kaleido non installé - graphiques désactivés")
-        return None
-    except Exception as e:
-        print(f"❌ Erreur création graphique {titre}: {e}")
-        return None
 
+    except Exception as e:
+        st.error(f"❌ Erreur création graphique {titre}: {e}")
+        return None
 def create_pdf_report(commune, annees):
     """Crée un rapport PDF professionnel avec tous les indicateurs financiers et graphiques"""
     
