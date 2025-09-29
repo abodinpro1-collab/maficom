@@ -30,7 +30,7 @@ def fetch_commune_investissement(commune, annees):
 
 
 def run():
-    st.title("Investissements des communes")
+    st.title("🏗️ Investissements des communes")
 
     commune_input = st.text_input("Nom de la commune :", value="RENAGE")
     annees = st.multiselect(

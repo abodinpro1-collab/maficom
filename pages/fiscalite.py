@@ -40,7 +40,7 @@ def fetch_commune_fiscalite(commune, annee):
     return df_fiscalite
 
 def run():
-    st.title("Fiscalité des communes")
+    st.title("🏦 Fiscalité des communes")
 
     commune_input = st.text_input("Nom de la commune :", value="RENAGE")
     annees = st.multiselect(

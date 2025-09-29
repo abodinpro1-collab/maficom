@@ -41,7 +41,7 @@ def fetch_commune_fdr(commune, annee):
     return df_fr
 
 def run():
-    st.title("Fonds de roulement des communes")
+    st.title("🔄 Fonds de roulement des communes")
 
     commune_input = st.text_input("Nom de la commune :", value="RENAGE")
     annees = st.multiselect(

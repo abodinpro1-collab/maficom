@@ -49,7 +49,7 @@ def fetch_commune_fonctionnement(commune, annee):
 
 
 def run():
-    st.title("Fonctionnement des communes")
+    st.title("💰 Fonctionnement des communes")
 
     commune_input = st.text_input("Nom de la commune :", value="RENAGE")
     annees = st.multiselect(
