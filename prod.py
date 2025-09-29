@@ -13,6 +13,9 @@ from datetime import datetime
 import tempfile
 import os
 import kaleido
+pio.kaleido.scope.chromium_args = ("--headless", "--disable-gpu", "--no-sandbox")
+
+
 # -----------------------
 # Fonctions de récupération des données (reprises de vos modules)
 # -----------------------
