@@ -270,6 +270,7 @@ def create_chart_image(df, colonnes, titre):
     """Crée un graphique Plotly et le sauvegarde comme image temporaire (compatible cloud)"""
     if df.empty or not colonnes:
         return None
+    import kaleido
 
     try:
         # Préparation des données pour le graphique
@@ -330,6 +331,7 @@ def create_chart_image(df, colonnes, titre):
     except Exception as e:
         st.error(f"❌ Erreur création graphique {titre}: {e}")
         return None
+
 def create_pdf_report(commune, annees):
     """Crée un rapport PDF professionnel avec tous les indicateurs financiers et graphiques"""
     
