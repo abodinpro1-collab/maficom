@@ -889,8 +889,8 @@ if page == "Accueil":
     with col2:
         annees = st.multiselect(
             "Sélectionnez les années à afficher :",
-            options=list(range(2019, 2025)),  # 2024 inclus maintenant
-            default=list(range(2019, 2025))   # 2024 inclus par défaut
+            options=list(range(2019, 2023)),  # 2024 inclus maintenant
+            default=list(range(2019, 2023))   # 2024 inclus par défaut
         )
     
     # Section Export Excel et PDF
