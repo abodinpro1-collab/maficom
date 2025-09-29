@@ -833,15 +833,15 @@ def create_excel_report(commune, annees):
 # -----------------------
 # Sidebar navigation
 # -----------------------
-st.sidebar.title("Navigation")
+st.sidebar.title("🧭 Navigation")
 page = st.sidebar.radio("Choisissez la page :", [
-    "Accueil",
-    "Fonctionnement",
-    "CAF",
-    "Fiscalité",
-    "Endettement",
-    "Investissement",
-    "Fonds de roulement"
+    "🏠 Accueil",
+    "💰 Fonctionnement",
+    "🧾 CAF",
+    "🏦 Fiscalité",
+    "📉 Endettement",
+    "🏗️ Investissement",
+    "🔄 Fonds de roulement"
 ])
 
 # -----------------------
