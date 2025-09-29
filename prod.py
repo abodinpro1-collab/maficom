@@ -885,7 +885,7 @@ if page == "Accueil":
     # Filtres
     col1, col2 = st.columns(2)
     with col1:
-        commune_input = st.text_input("Nom de la commune :", value="RENAGE")
+        commune_input = st.text_input("Nom de la commune (⚠️ écrire le nom de la commune en majuscule):", value="RENAGE")
     with col2:
         annees = st.multiselect(
             "Sélectionnez les années à afficher :",
