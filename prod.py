@@ -833,15 +833,15 @@ def create_excel_report(commune, annees):
 # -----------------------
 # Sidebar navigation
 # -----------------------
-st.sidebar.title("🧭 Navigation")
-page = st.sidebar.radio("Choisissez la page :", [
-    "🏠 Accueil",
-    "💰 Fonctionnement",
-    "🧾 CAF",
-    "🏦 Fiscalité",
-    "📉 Endettement",
-    "🏗️ Investissement",
-    "🔄 Fonds de roulement"
+st.sidebar.title("Navigation")
+page = st.sidebar.selectbox("Choisissez la page :", [
+    "Accueil",
+    "Fonctionnement",
+    "CAF",
+    "Fiscalité",
+    "Endettement",
+    "Investissement",
+    "Fonds de roulement"
 ])
 
 # -----------------------
@@ -985,17 +985,17 @@ if page == "Accueil":
 # Import dynamique des pages
 # -----------------------
 else:
-    if page == "💰 Fonctionnement":
+    if page == "Fonctionnement":
         from pages.fonctionnement import run
-    elif page == "🧾 CAF":
+    elif page == "CAF":
         from pages.caf import run
-    elif page == "🏦 Fiscalité":
+    elif page == "Fiscalité":
         from pages.fiscalite import run
-    elif page == "📉 Endettement":
+    elif page == "Endettement":
         from pages.endettements import run
-    elif page == "🏗️ Investissement":
+    elif page == "Investissement":
         from pages.investissements import run
-    elif page == "🔄 Fonds de roulement":
+    elif page == "Fonds de roulement":
         from pages.fdr import run
 
     # Exécution de la page sélectionnée
