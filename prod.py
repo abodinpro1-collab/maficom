@@ -271,18 +271,51 @@ import tempfile
 import os
 import streamlit as st
 
-def create_chart_image(df, colonnes, titre):
-    """
-    Crée un graphique Plotly et le sauvegarde comme image PNG ou HTML (fallback).
-    Compatible Streamlit et déploiement cloud.
-    """
+import plotly.express as px
+import plotly.io as pio
+import tempfile
+import os
+import streamlit as st
+import subprocess
+import sys
 
+def ensure_kaleido_chrome():
+    """
+    Vérifie si Kaleido + Chrome sont installés.
+    Si non, tente de les installer automatiquement.
+    """
+    try:
+        import kaleido
+    except ImportError:
+        st.info("📥 Installation de kaleido...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "kaleido"])
+    
+    try:
+        # Test simple pour voir si Kaleido peut exporter PNG
+        import plotly.io as pio
+        fig_test = px.line(x=[1, 2], y=[1, 2])
+        fig_test.to_image(format="png")
+    except Exception:
+        st.info("⚙ Installation de Chrome pour Kaleido...")
+        try:
+            subprocess.check_call([sys.executable, "-m", "kaleido"])
+        except Exception:
+            st.error("❌ Impossible d'installer Chrome pour Kaleido. Veuillez l'installer manuellement.")
+            return False
+    return True
+
+
+def create_chart_image(df, colonnes, titre, for_pdf=True):
+    """
+    Crée un graphique Plotly et le sauvegarde comme image PNG ou HTML.
+    - for_pdf=True → toujours PNG (ReportLab).
+    - for_pdf=False → HTML possible si Kaleido absent.
+    """
     if df.empty or not colonnes:
         st.warning(f"⚠ Pas de données pour {titre}")
         return None
 
     try:
-        # Préparation des données
         df_plot = df[colonnes].reset_index().melt(
             id_vars="Année", var_name="Indicateur", value_name="Valeur"
         )
@@ -291,7 +324,6 @@ def create_chart_image(df, colonnes, titre):
             st.warning(f"⚠ Données vides pour {titre}")
             return None
 
-        # Création du graphique
         colors_palette = ['#1f4e79', '#87ceeb']
         fig = px.line(
             df_plot,
@@ -324,20 +356,32 @@ def create_chart_image(df, colonnes, titre):
             margin=dict(l=60, r=60, t=60, b=80)
         )
 
-        # 🛠 Tentative export PNG avec Kaleido
-        try:
+        if for_pdf:
+            # ✅ S'assurer que Kaleido + Chrome sont disponibles pour PDF
+            if not ensure_kaleido_chrome():
+                st.error(f"❌ Impossible de créer PNG pour {titre}")
+                return None
+
             img_bytes = fig.to_image(format="png", width=600, height=450, scale=2)
             temp_path = tempfile.mktemp(suffix=".png")
             with open(temp_path, "wb") as f:
                 f.write(img_bytes)
-            st.success(f"✅ Graphique PNG créé: {titre}")
+            st.success(f"✅ Graphique PNG créé pour PDF: {titre}")
             return temp_path
 
-        except Exception as e:
-            st.warning(f"⚠ Kaleido/Chrome manquant pour {titre}, export HTML utilisé.")
-            temp_path = tempfile.mktemp(suffix=".html")
-            fig.write_html(temp_path)
-            return temp_path
+        else:
+            # Fallback HTML pour affichage Streamlit
+            try:
+                img_bytes = fig.to_image(format="png", width=600, height=450, scale=2)
+                temp_path = tempfile.mktemp(suffix=".png")
+                with open(temp_path, "wb") as f:
+                    f.write(img_bytes)
+                return temp_path
+            except Exception:
+                st.warning(f"⚠ Kaleido/Chrome absent → export HTML pour {titre}")
+                temp_path = tempfile.mktemp(suffix=".html")
+                fig.write_html(temp_path)
+                return temp_path
 
     except Exception as e:
         st.error(f"❌ Erreur création graphique {titre}: {e}")
