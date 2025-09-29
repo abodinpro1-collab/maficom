@@ -13,9 +13,6 @@ from datetime import datetime
 import tempfile
 import os
 import kaleido
-pio.kaleido.scope.chromium_args = ("--headless", "--disable-gpu", "--no-sandbox")
-
-
 # -----------------------
 # Fonctions de récupération des données (reprises de vos modules)
 # -----------------------
@@ -308,26 +305,28 @@ def ensure_kaleido_chrome():
     return True
 
 
-def create_chart_image(df, colonnes, titre, for_pdf=True):
-    """
-    Crée un graphique Plotly et le sauvegarde comme image PNG ou HTML.
-    - for_pdf=True → toujours PNG (ReportLab).
-    - for_pdf=False → HTML possible si Kaleido absent.
-    """
+def create_chart_image(df, colonnes, titre):
+    """Crée un graphique Plotly et le sauvegarde comme image temporaire"""
     if df.empty or not colonnes:
-        st.warning(f"⚠ Pas de données pour {titre}")
         return None
-
+    
     try:
+        # Vérifier que kaleido est disponible
+        import kaleido
+        
+        # Préparation des données pour le graphique
         df_plot = df[colonnes].reset_index().melt(
             id_vars="Année", var_name="Indicateur", value_name="Valeur"
         )
-
+        
+        # Vérifier qu'il y a des données à afficher
         if df_plot.empty or df_plot['Valeur'].isna().all():
-            st.warning(f"⚠ Données vides pour {titre}")
             return None
-
-        colors_palette = ['#1f4e79', '#87ceeb']
+        
+        # Couleurs personnalisées : bleu foncé et bleu clair
+        colors_palette = ['#1f4e79', '#87ceeb']  # Bleu foncé, bleu clair
+        
+        # Création du graphique Plotly
         fig = px.line(
             df_plot,
             x="Année",
@@ -337,57 +336,49 @@ def create_chart_image(df, colonnes, titre, for_pdf=True):
             title=f"Évolution - {titre}",
             color_discrete_sequence=colors_palette
         )
-
+        
         fig.update_traces(mode="lines+markers", line=dict(width=3), marker=dict(size=8))
         fig.update_layout(
-            template="plotly_white",
+            template="plotly_white", 
             hovermode="x unified",
             width=600,
-            height=450,
+            height=450,  # Augmenté pour la légende en bas
             title_x=0.5,
             title_font_size=14,
             font=dict(size=11),
             showlegend=True,
             legend=dict(
-                orientation="h",
+                orientation="h",  # Légende horizontale
                 yanchor="top",
-                y=-0.15,
+                y=-0.15,  # Positionner en dessous du graphique
                 xanchor="center",
                 x=0.5,
                 font=dict(size=10)
             ),
-            margin=dict(l=60, r=60, t=60, b=80)
+            margin=dict(l=60, r=60, t=60, b=80)  # Marges ajustées pour la légende
         )
-
-        if for_pdf:
-            # ✅ S'assurer que Kaleido + Chrome sont disponibles pour PDF
-            if not ensure_kaleido_chrome():
-                st.error(f"❌ Impossible de créer PNG pour {titre}")
-                return None
-
-            img_bytes = fig.to_image(format="png", width=600, height=450, scale=2)
-            temp_path = tempfile.mktemp(suffix=".png")
-            with open(temp_path, "wb") as f:
-                f.write(img_bytes)
-            st.success(f"✅ Graphique PNG créé pour PDF: {titre}")
+        
+        # Sauvegarder l'image temporairement
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+        temp_path = temp_file.name
+        temp_file.close()
+        
+        # Export de l'image avec gestion d'erreur
+        pio.write_image(fig, temp_path, format='png', width=600, height=450, scale=2, engine='kaleido')
+        
+        # Vérifier que le fichier a été créé
+        if os.path.exists(temp_path) and os.path.getsize(temp_path) > 0:
+            print(f"✅ Graphique créé: {titre} -> {temp_path}")
             return temp_path
-
         else:
-            # Fallback HTML pour affichage Streamlit
-            try:
-                img_bytes = fig.to_image(format="png", width=600, height=450, scale=2)
-                temp_path = tempfile.mktemp(suffix=".png")
-                with open(temp_path, "wb") as f:
-                    f.write(img_bytes)
-                return temp_path
-            except Exception:
-                st.warning(f"⚠ Kaleido/Chrome absent → export HTML pour {titre}")
-                temp_path = tempfile.mktemp(suffix=".html")
-                fig.write_html(temp_path)
-                return temp_path
-
+            print(f"❌ Échec création: {titre}")
+            return None
+    
+    except ImportError:
+        print("❌ Kaleido non installé - graphiques désactivés")
+        return None
     except Exception as e:
-        st.error(f"❌ Erreur création graphique {titre}: {e}")
+        print(f"❌ Erreur création graphique {titre}: {e}")
         return None
 
 
