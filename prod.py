@@ -834,7 +834,7 @@ def create_excel_report(commune, annees):
 # Sidebar navigation
 # -----------------------
 st.sidebar.title("Navigation")
-page = st.sidebar.selectbox("Choisissez la page :", [
+page = st.sidebar.radio("Choisissez la page :", [
     "Accueil",
     "Fonctionnement",
     "CAF",
@@ -855,6 +855,7 @@ if page == "Accueil":
     - Comparaison avec la moyenne de la strate
     - Graphiques interactifs pour visualiser l'évolution dans le temps
     - **Export Excel complet de toutes les données**
+    - **Génération d'un rapport PDF professionnel** avec graphiques et synthèse
     """)
 
     # Filtres
@@ -980,10 +981,6 @@ if page == "Accueil":
     else:
         st.info("Veuillez sélectionner une commune et des années pour générer les rapports")
     
-    # Informations détaillées sur le contenu
-    with st.expander("Contenu détaillé des rapports"):
-        col1, col2 = st.columns(2)
-
 # -----------------------
 # Import dynamique des pages
 # -----------------------
