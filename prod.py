@@ -13,7 +13,6 @@ from datetime import datetime
 import tempfile
 import os
 import kaleido
-kaleido.get_chrome_sync()
 # -----------------------
 # Fonctions de récupération des données (reprises de vos modules)
 # -----------------------
