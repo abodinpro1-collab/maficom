@@ -266,21 +266,32 @@ def get_all_commune_data(commune, annees):
     data['fdr'] = fetch_commune_fdr(commune, annees)
     return data
 
+import plotly.io as pio
+import tempfile
+import os
+import streamlit as st
+
 def create_chart_image(df, colonnes, titre):
-    """Crée un graphique Plotly et le sauvegarde comme image temporaire (compatible cloud)"""
+    """
+    Crée un graphique Plotly et le sauvegarde comme image PNG ou HTML (fallback).
+    Compatible Streamlit et déploiement cloud.
+    """
+
     if df.empty or not colonnes:
+        st.warning(f"⚠ Pas de données pour {titre}")
         return None
-    import kaleido
 
     try:
-        # Préparation des données pour le graphique
+        # Préparation des données
         df_plot = df[colonnes].reset_index().melt(
             id_vars="Année", var_name="Indicateur", value_name="Valeur"
         )
 
         if df_plot.empty or df_plot['Valeur'].isna().all():
+            st.warning(f"⚠ Données vides pour {titre}")
             return None
 
+        # Création du graphique
         colors_palette = ['#1f4e79', '#87ceeb']
         fig = px.line(
             df_plot,
@@ -313,24 +324,25 @@ def create_chart_image(df, colonnes, titre):
             margin=dict(l=60, r=60, t=60, b=80)
         )
 
-        # 🔑 Utiliser fig.to_image() pour générer l'image en mémoire (au lieu de write_image direct)
-        img_bytes = fig.to_image(format="png", width=600, height=450, scale=2)
-
-        # Sauvegarde dans un fichier temporaire lisible par ReportLab
-        temp_path = tempfile.mktemp(suffix=".png")
-        with open(temp_path, "wb") as f:
-            f.write(img_bytes)
-
-        if os.path.exists(temp_path) and os.path.getsize(temp_path) > 0:
-            print(f"✅ Graphique créé: {titre} -> {temp_path}")
+        # 🛠 Tentative export PNG avec Kaleido
+        try:
+            img_bytes = fig.to_image(format="png", width=600, height=450, scale=2)
+            temp_path = tempfile.mktemp(suffix=".png")
+            with open(temp_path, "wb") as f:
+                f.write(img_bytes)
+            st.success(f"✅ Graphique PNG créé: {titre}")
             return temp_path
-        else:
-            st.warning(f"⚠️ Graphique {titre} non généré (fichier vide)")
-            return None
+
+        except Exception as e:
+            st.warning(f"⚠ Kaleido/Chrome manquant pour {titre}, export HTML utilisé.")
+            temp_path = tempfile.mktemp(suffix=".html")
+            fig.write_html(temp_path)
+            return temp_path
 
     except Exception as e:
         st.error(f"❌ Erreur création graphique {titre}: {e}")
         return None
+
 
 def create_pdf_report(commune, annees):
     """Crée un rapport PDF professionnel avec tous les indicateurs financiers et graphiques"""
