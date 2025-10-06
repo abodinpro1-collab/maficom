@@ -3,9 +3,12 @@ import pandas as pd
 import requests
 import plotly.express as px
 
-def fetch_commune_fdr(commune, annee):
+def fetch_commune_fdr(commune, annee, departement=None):
     url = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/comptes-individuels-des-communes-fichier-global-a-compter-de-2000/records"
-    params = {"where": f"an='{annee}' AND inom='{commune}'", "limit": 100}
+    where_clause = f'an="{annee}" AND inom="{commune}"'
+    if departement:
+        where_clause += f' AND dep="{departement}"'
+    params = {"where": where_clause, "limit": 100}
     response = requests.get(url, params=params)
     data = response.json()
 
@@ -40,20 +43,21 @@ def fetch_commune_fdr(commune, annee):
 
     return df_fr
 
-def run():
+def run(commune=None, annees=None, departement=None):
     st.title("🔄 Fonds de roulement des communes")
 
-    commune_input = st.text_input("Nom de la commune :", value="RENAGE")
+    commune_selectionnee = st.text_input("Nom de la commune :", value=commune or "RENAGE")
+    departement_selectionne = st.text_input('Département (optionnel) :', value=departement or "")
     annees = st.multiselect(
         "Sélectionnez les années à afficher :",
-        options=list(range(2019, 2024)),  # ordre croissant
-        default=list(range(2019, 2024))
+        options=list(range(2023, 2018, -1)),
+        default=annees or list(range(2023, 2018, -1))
     )
 
     df_list = []
-    if commune_input and annees:
+    if commune_selectionnee and annees:
         for annee in annees:
-            df_annee = fetch_commune_fdr(commune_input, annee)
+            df_annee = fetch_commune_fdr(commune_selectionnee, annee, departement_selectionne)
             if not df_annee.empty:
                 df_list.append(df_annee)
 
@@ -92,3 +96,6 @@ def run():
                             st.warning(f"Impossible d'afficher le graphique pour {titre} ({e})")
         else:
             st.warning("Aucune donnée disponible pour cette commune et ces années.")
+
+if __name__ == "__main__":
+    run()

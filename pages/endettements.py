@@ -3,24 +3,28 @@ import requests
 import streamlit as st
 import plotly.express as px
 
-def fetch_commune_endettement(commune, annees):
+def fetch_commune_endettement(commune, annees, departement=None):
     df_list = []
-    for an in annees:
+    for annee in annees:
         url = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/comptes-individuels-des-communes-fichier-global-a-compter-de-2000/records"
-        params = {"where": f'an="{an}" AND inom="{commune}"', "limit": 100}
+        where_clause = f'an="{annee}" AND inom="{commune}"'
+        if departement:
+            where_clause += f' AND dep="{departement}"'
+        params = {"where": where_clause, "limit": 100}
         r = requests.get(url, params=params)
         data = r.json().get("results", [])
+
         if data:
             df = pd.DataFrame(data)
-            cols = ['an', 'fdette', 'mdette', 'fcaf', 'mcaf', 'fcafn', 'mcafn']
+            cols = ['an', 'fdette', 'mdette', 'fcaf', 'mcaf', 'fcafn', 'mcafn','fprod','mprod']
             df_exist = [c for c in cols if c in df.columns]
             df = df[df_exist].copy()
 
             # Mini-tableaux
             df['Dette / Habitant Commune'] = df['fdette']
             df['Dette / Habitant Moyenne'] = df['mdette']
-            df['Dettes / RRF Commune'] = (df['fdette'] / df['fcaf'] * 100).round(2)
-            df['Dettes / RRF Moyenne'] = (df['mdette'] / df['mcaf'] * 100).round(2)
+            df['Dettes / RRF Commune'] = (df['fdette'] / df['fprod'] * 100).round(2)
+            df['Dettes / RRF Moyenne'] = (df['mdette'] / df['mprod'] * 100).round(2)
             df['Dette en années de CAF Brute Commune'] = (df['fdette'] / df['fcaf']).round(2)
             df['Dette en années de CAF Brute Moyenne'] = (df['mdette'] / df['mcaf']).round(2)
             df['Part du remboursement de la dette / CAF Brute Commune'] = (
@@ -38,18 +42,19 @@ def fetch_commune_endettement(commune, annees):
     return pd.DataFrame()
 
 
-def run():
+def run(commune=None, annees=None, departement=None):
     st.title("📉 Endettement des communes")
 
-    commune_input = st.text_input("Nom de la commune :", value="RENAGE")
+    commune_selectionnee = st.text_input("Nom de la commune :", value=commune or "RENAGE")
+    departement_selectionne = st.text_input('Département (optionnel) :', value=departement or "")
     annees = st.multiselect(
         "Sélectionnez les années à afficher :",
-        options=list(range(2019, 2024)),  # ordre croissant
-        default=list(range(2019, 2024))
+        options=list(range(2023, 2018, -1)),
+        default=annees or list(range(2023, 2018, -1))
     )
 
-    if commune_input and annees:
-        df = fetch_commune_endettement(commune_input, annees)
+    if commune_selectionnee and annees:
+        df = fetch_commune_endettement(commune_selectionnee, annees, departement_selectionne)
         if not df.empty:
             df.set_index("Année", inplace=True)
 
@@ -88,3 +93,5 @@ def run():
                             st.warning(f"Impossible d'afficher le graphique pour {titre} ({e})")
         else:
             st.warning("Aucune donnée disponible pour cette commune et ces années.")
+if __name__ == "__main__":
+    run()
