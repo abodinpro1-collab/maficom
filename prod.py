@@ -13,16 +13,28 @@ from datetime import datetime
 import tempfile
 import os
 import kaleido
+
+
+
+
+
+
 # -----------------------
 # Fonctions de récupération des données (reprises de vos modules)
 # -----------------------
 
-def fetch_commune_fonctionnement(commune, annees):
+
+
+def fetch_commune_fonctionnement(commune, annees, departement):
     """Récupère les données de fonctionnement"""
     df_list = []
     for annee in annees:
         url = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/comptes-individuels-des-communes-fichier-global-a-compter-de-2000/records"
-        params = {"where": f'an="{annee}" AND inom="{commune}"', "limit": 100}
+        where_clause = f'an="{annee}" AND inom="{commune}"'
+        if departement:
+            where_clause += f' AND dep="{departement}"'
+        
+        params = {"where": where_clause, "limit": 100}
         response = requests.get(url, params=params)
         data = response.json()
         
@@ -68,13 +80,17 @@ def fetch_commune_fonctionnement(commune, annees):
         return pd.concat(df_list, ignore_index=True)
     return pd.DataFrame()
 
-def fetch_commune_caf(commune, annees):
+def fetch_commune_caf(commune, annees, departement):
     """Récupère les données CAF"""
     url = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/comptes-individuels-des-communes-fichier-global-a-compter-de-2000/records"
     dfs = []
 
     for annee in annees:
-        params = {"where": f'an="{annee}" AND inom="{commune}"', "limit": 100}
+        where_clause = f'an="{annee}" AND inom="{commune}"'
+        if departement:
+            where_clause += f' AND dep="{departement}"'
+        
+        params = {"where": where_clause, "limit": 100}
         response = requests.get(url, params=params)
         data = response.json()
 
@@ -116,12 +132,16 @@ def fetch_commune_caf(commune, annees):
     else:
         return pd.DataFrame()
 
-def fetch_commune_fiscalite(commune, annees):
+def fetch_commune_fiscalite(commune, annees, departement):
     """Récupère les données de fiscalité"""
     df_list = []
     for annee in annees:
         url = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/comptes-individuels-des-communes-fichier-global-a-compter-de-2000/records"
-        params = {"where": f'an=\"{annee}\" AND inom=\"{commune}\"', "limit": 100}
+        where_clause = f'an="{annee}" AND inom="{commune}"'
+        if departement:
+            where_clause += f' AND dep="{departement}"'
+        
+        params = {"where": where_clause, "limit": 100}
         response = requests.get(url, params=params)
         data = response.json()
 
@@ -158,12 +178,16 @@ def fetch_commune_fiscalite(commune, annees):
         return pd.concat(df_list, ignore_index=True)
     return pd.DataFrame()
 
-def fetch_commune_endettement(commune, annees):
+def fetch_commune_endettement(commune, annees, departement):
     """Récupère les données d'endettement"""
     df_list = []
     for an in annees:
         url = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/comptes-individuels-des-communes-fichier-global-a-compter-de-2000/records"
-        params = {"where": f'an="{an}" AND inom="{commune}"', "limit": 100}
+        where_clause = f'an="{an}" AND inom="{commune}"'
+        if departement:
+            where_clause += f' AND dep="{departement}"'
+        
+        params = {"where": where_clause, "limit": 100}
         r = requests.get(url, params=params)
         data = r.json().get("results", [])
         if data:
@@ -186,12 +210,16 @@ def fetch_commune_endettement(commune, annees):
         return pd.concat(df_list, ignore_index=True).sort_values("Année")
     return pd.DataFrame()
 
-def fetch_commune_investissement(commune, annees):
+def fetch_commune_investissement(commune, annees, departement):
     """Récupère les données d'investissement"""
     df_list = []
     for an in annees:
         url = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/comptes-individuels-des-communes-fichier-global-a-compter-de-2000/records"
-        params = {"where": f'an="{an}" AND inom="{commune}"', "limit": 100}
+        where_clause = f'an="{an}" AND inom="{commune}"'
+        if departement:
+            where_clause += f' AND dep="{departement}"'
+        
+        params = {"where": where_clause, "limit": 100}
         r = requests.get(url, params=params)
         data = r.json().get("results", [])
         if data:
@@ -212,12 +240,16 @@ def fetch_commune_investissement(commune, annees):
         return pd.concat(df_list, ignore_index=True).sort_values("Année")
     return pd.DataFrame()
 
-def fetch_commune_fdr(commune, annees):
+def fetch_commune_fdr(commune, annees, departement):
     """Récupère les données de fonds de roulement"""
     df_list = []
     for annee in annees:
         url = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/comptes-individuels-des-communes-fichier-global-a-compter-de-2000/records"
-        params = {"where": f"an='{annee}' AND inom='{commune}'", "limit": 100}
+        where_clause = f'an="{annee}" AND inom="{commune}"'
+        if departement:
+            where_clause += f' AND dep="{departement}"'
+        
+        params = {"where": where_clause, "limit": 100}
         response = requests.get(url, params=params)
         data = response.json()
 
@@ -255,15 +287,40 @@ def fetch_commune_fdr(commune, annees):
     return pd.DataFrame()
 
 @st.cache_data(show_spinner=False)
-def get_all_commune_data(commune, annees):
+def search_commune(nom_commune, annee_reference=2023):
+    """Recherche une commune et retourne les informations incluant le département"""
+    url = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/comptes-individuels-des-communes-fichier-global-a-compter-de-2000/records"
+    params = {
+        "where": f'an="{annee_reference}" AND inom="{nom_commune}"',
+        "limit": 100
+    }
+    
+    response = requests.get(url, params=params)
+    data = response.json()
+    
+    if "results" not in data or not data["results"]:
+        return []
+    
+    communes = []
+    for result in data["results"]:
+        communes.append({
+            "nom": result.get("inom", ""),
+            "departement": result.get("dep", ""),
+            "population": result.get("pop1", 0)
+        })
+    
+    return communes
+
+@st.cache_data(show_spinner=False)
+def get_all_commune_data(commune, annees, departement):
     """Récupère toutes les données financières pour une commune"""
     data = {}
-    data['fonctionnement'] = fetch_commune_fonctionnement(commune, annees)
-    data['caf'] = fetch_commune_caf(commune, annees)
-    data['fiscalite'] = fetch_commune_fiscalite(commune, annees)
-    data['endettement'] = fetch_commune_endettement(commune, annees)
-    data['investissement'] = fetch_commune_investissement(commune, annees)
-    data['fdr'] = fetch_commune_fdr(commune, annees)
+    data['fonctionnement'] = fetch_commune_fonctionnement(commune, annees,departement)
+    data['caf'] = fetch_commune_caf(commune, annees,departement)
+    data['fiscalite'] = fetch_commune_fiscalite(commune, annees,departement)
+    data['endettement'] = fetch_commune_endettement(commune, annees, departement)
+    data['investissement'] = fetch_commune_investissement(commune, annees, departement)
+    data['fdr'] = fetch_commune_fdr(commune, annees, departement)
     return data
 
 import plotly.io as pio
@@ -366,7 +423,7 @@ def create_chart_image(df, colonnes, titre):
         print(f"❌ Erreur création graphique {titre}: {e}")
         return None
 
-def create_pdf_report(commune, annees):
+def create_pdf_report(commune, annees, departement=None):
     """Crée un rapport PDF professionnel avec tous les indicateurs financiers et graphiques"""
     
     # Import local pour éviter les conflits
@@ -374,7 +431,7 @@ def create_pdf_report(commune, annees):
     
     # Récupération de toutes les données
     with st.spinner("📄 Génération du rapport PDF avec graphiques..."):
-        all_data = get_all_commune_data(commune, annees)
+        all_data = get_all_commune_data(commune, annees, departement)
     
     # Liste pour stocker les fichiers temporaires à nettoyer
     temp_files = []
@@ -733,7 +790,7 @@ def create_pdf_report(commune, annees):
     
     # Récupération de toutes les données
     with st.spinner("📊 Récupération des données financières..."):
-        all_data = get_all_commune_data(commune, annees)
+        all_data = get_all_commune_data(commune, annees, departement)
     
     # Création du fichier Excel en mémoire avec BytesIO (solution alternative)
     from io import BytesIO
@@ -791,12 +848,12 @@ def create_pdf_report(commune, annees):
     excel_buffer.seek(0)
     excel_data = excel_buffer.getvalue()
     
-def create_excel_report(commune, annees):
+def create_excel_report(commune, annees, departement):
     """Crée un fichier Excel complet avec tous les indicateurs financiers"""
     
     # Récupération de toutes les données
     with st.spinner("📊 Récupération des données financières..."):
-        all_data = get_all_commune_data(commune, annees)
+        all_data = get_all_commune_data(commune, annees, departement)
     
     # Création du fichier Excel en mémoire
     excel_buffer = BytesIO()
@@ -868,46 +925,107 @@ page = st.sidebar.selectbox("Choisissez la page :", [
     "Fonds de roulement"
 ])
 
-# -----------------------
-# Page Accueil
-# -----------------------
+
+# ============================================================
+# 🔧 Initialisation des variables et du session_state
+# ============================================================
+
+if "commune" not in st.session_state:
+    st.session_state["commune"] = None
+if "departement" not in st.session_state:
+    st.session_state["departement"] = None
+if "annees" not in st.session_state:
+    st.session_state["annees"] = list(range(2019, 2024))  # Par défaut 2019–2023
+
+commune_selectionnee = st.session_state["commune"]
+departement_selectionne = st.session_state["departement"]
+annees = st.session_state["annees"]
+
+# ============================================================
+# 🏠 Page d'accueil
+# ============================================================
+
 if page == "Accueil":
     st.title("Bienvenue sur **Focus Financier**")
     st.markdown("""
     **Focus Financier** est un outil d'analyse des comptes des communes françaises, offrant :
-    - Consultation des données financières : fonctionnement, CAF, fiscalité, endettement, investissements, fonds de roulement
-    - Comparaison avec la moyenne de la strate
-    - Graphiques interactifs pour visualiser l'évolution dans le temps
-    - **Export Excel complet de toutes les données**
+    - Consultation des données financières : fonctionnement, CAF, fiscalité, endettement, investissements, fonds de roulement  
+    - Comparaison avec la moyenne de la strate  
+    - Graphiques interactifs pour visualiser l'évolution dans le temps  
+    - **Export Excel complet de toutes les données**  
     - **Génération d'un rapport PDF professionnel** avec graphiques et synthèse
     """)
 
-    # Filtres
+    # Filtres principaux
     col1, col2 = st.columns(2)
     with col1:
-        commune_input = st.text_input("Nom de la commune (⚠️ écrire le nom de la commune en majuscule):", value="RENAGE")
+        commune_input = st.text_input(
+            "Nom de la commune (⚠️ écrire le nom de la commune en majuscule) :", 
+            value="RENAGE"
+        )
+
+        commune_selectionnee = None
+        departement_selectionne = None
+
+        if commune_input and len(commune_input) >= 1:
+            communes_trouvees = search_commune(commune_input)
+
+            if len(communes_trouvees) == 0:
+                st.error(f"❌ Aucune commune trouvée avec le nom '{commune_input}'")
+
+            elif len(communes_trouvees) == 1:
+                # ✅ Une seule commune trouvée
+                commune_selectionnee = communes_trouvees[0]["nom"]
+                departement_selectionne = communes_trouvees[0]["departement"]
+                st.success(f"✅ Commune sélectionnée : **{commune_selectionnee}** (Dépt. {departement_selectionne})")
+
+            else:
+                # ⚠️ Plusieurs homonymes trouvés
+                st.warning(f"⚠️ {len(communes_trouvees)} communes portent le nom '{commune_input}'")
+
+                options = [
+                    f"{c['nom']} - Dépt {c['departement']} (Pop: {c['population']:,})"
+                    for c in communes_trouvees
+                ]
+                selection = st.selectbox("Choisissez la commune :", options)
+
+                # Extraction de la sélection
+                for i, opt in enumerate(options):
+                    if opt == selection:
+                        commune_selectionnee = communes_trouvees[i]["nom"]
+                        departement_selectionne = communes_trouvees[i]["departement"]
+                        break
+
+        # 🔁 Sauvegarde en session state
+        if commune_selectionnee and departement_selectionne:
+            st.session_state["commune"] = commune_selectionnee
+            st.session_state["departement"] = departement_selectionne
+
+    # Sélecteur d’années
     with col2:
         annees = st.multiselect(
             "Sélectionnez les années à afficher :",
-            options=list(range(2019, 2024)),  # 2024 inclus maintenant
-            default=list(range(2019, 2024))   # 2024 inclus par défaut
+            options=list(range(2019, 2024)),
+            default=st.session_state["annees"]
         )
-    
-    # Section Export Excel et PDF
+        st.session_state["annees"] = annees
+
+    # ============================================================
+    # 📊 Section Export Excel / PDF / CSV
+    # ============================================================
+
     st.markdown("---")
     st.markdown("### 📊 Export des données")
-    
-    if commune_input and annees:
+
+    if commune_selectionnee and departement_selectionne and annees:
         col1, col2, col3 = st.columns(3)
-        
+
         # Export Excel
         with col1:
             if st.button("📄 Rapport Excel", type="primary", use_container_width=True):
                 try:
-                    excel_data = create_excel_report(commune_input, annees)
-                    
-                    filename = f"Focus_Financier_{commune_input}_{min(annees)}-{max(annees)}.xlsx"
-                    
+                    excel_data = create_excel_report(commune_selectionnee, annees, departement_selectionne)
+                    filename = f"Focus_Financier_{commune_selectionnee}_{min(annees)}-{max(annees)}.xlsx"
                     st.download_button(
                         label="📥 Télécharger Excel",
                         data=excel_data,
@@ -915,23 +1033,16 @@ if page == "Accueil":
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         use_container_width=True
                     )
-                    
                     st.success("✅ Excel généré !")
-                    
                 except Exception as e:
                     st.error(f"❌ Erreur Excel : {str(e)}")
-        
+
         # Export PDF
         with col2:
             if st.button("📄 Rapport PDF", type="secondary", use_container_width=True):
                 try:
-                    # Test d'import avant exécution
-                    import plotly.io as pio_test
-                    
-                    pdf_data = create_pdf_report(commune_input, annees)
-                    
-                    filename_pdf = f"Focus_Financier_{commune_input}_{min(annees)}-{max(annees)}.pdf"
-                    
+                    pdf_data = create_pdf_report(commune_selectionnee, annees, departement_selectionne)
+                    filename_pdf = f"Focus_Financier_{commune_selectionnee}_{min(annees)}-{max(annees)}.pdf"
                     st.download_button(
                         label="📥 Télécharger PDF",
                         data=pdf_data,
@@ -939,25 +1050,20 @@ if page == "Accueil":
                         mime="application/pdf",
                         use_container_width=True
                     )
-                    
                     st.success("✅ PDF généré !")
-                    
-                except ImportError as ie:
-                    st.error("❌ Dépendance manquante : pip install kaleido")
-                    st.info("ℹ️ Kaleido est requis pour les graphiques PDF")
+                except ImportError:
+                    st.error("❌ Dépendance manquante : `pip install kaleido`")
                 except Exception as e:
                     st.error(f"❌ Erreur PDF : {str(e)}")
-                    st.error("💡 Essayez l'export Excel en attendant")
-        
+
         # Export CSV
         with col3:
             if st.button("📊 Export CSV", use_container_width=True):
                 try:
-                    all_data = get_all_commune_data(commune_input, annees)
-                    if not all_data['fonctionnement'].empty:
-                        csv_data = all_data['fonctionnement'].to_csv(index=False)
-                        filename_csv = f"Focus_Financier_{commune_input}_fonctionnement.csv"
-                        
+                    all_data = get_all_commune_data(commune_selectionnee, annees, departement_selectionne)
+                    if not all_data["fonctionnement"].empty:
+                        csv_data = all_data["fonctionnement"].to_csv(index=False)
+                        filename_csv = f"Focus_Financier_{commune_selectionnee}_fonctionnement.csv"
                         st.download_button(
                             label="📥 Télécharger CSV",
                             data=csv_data,
@@ -969,8 +1075,8 @@ if page == "Accueil":
                         st.warning("Aucune donnée disponible.")
                 except Exception as e:
                     st.error(f"Erreur : {str(e)}")
-        
-        # Informations sur les formats
+
+# Informations sur les formats
         st.markdown("---")
         st.markdown("### 📋 Formats d'export")
         
@@ -1002,25 +1108,47 @@ if page == "Accueil":
             - Import facile autres outils
             - Léger et rapide
             """)
-    else:
-        st.info("Veuillez sélectionner une commune et des années pour générer les rapports")
-    
-# -----------------------
-# Import dynamique des pages
-# -----------------------
-else:
-    if page == "Fonctionnement":
-        from pages.fonctionnement import run
-    elif page == "CAF":
-        from pages.caf import run
-    elif page == "Fiscalité":
-        from pages.fiscalite import run
-    elif page == "Endettement":
-        from pages.endettements import run
-    elif page == "Investissement":
-        from pages.investissements import run
-    elif page == "Fonds de roulement":
-        from pages.fdr import run
 
-    # Exécution de la page sélectionnée
-    run()
+    elif commune_input and annees and not commune_selectionnee:
+        st.info("Veuillez sélectionner une commune dans la liste ci-dessus pour générer les rapports.")
+
+# ============================================================
+# 🔄 Autres pages (fonctionnement, CAF, fiscalité, etc.)
+# ============================================================
+
+else:
+    commune = st.session_state.get("commune")
+    departement = st.session_state.get("departement")
+    annees_session = st.session_state.get("annees", [])
+
+    if not commune or not annees_session:
+        st.warning("⚠️ Veuillez d'abord sélectionner une commune sur la page d'accueil.")
+        if st.button("🏠 Retour à l'accueil"):
+            st.switch_page("pages/accueil.py")
+    else:
+        st.markdown(f"**Commune :** {commune} | **Département :** {departement or 'N/A'} | **Période :** {min(annees_session)}–{max(annees_session)}")
+        st.markdown("---")
+
+        try:
+            if page == "Fonctionnement":
+                from pages.fonctionnement import run
+                run(commune, annees_session, departement)
+            elif page == "CAF":
+                from pages.caf import run
+                run(commune, annees_session, departement)
+            elif page == "Fiscalité":
+                from pages.fiscalite import run
+                run(commune, annees_session, departement)
+            elif page == "Endettement":
+                from pages.endettements import run
+                run(commune, annees_session, departement)
+            elif page == "Investissement":
+                from pages.investissements import run
+                run(commune, annees_session, departement)
+            elif page == "Fonds de roulement":
+                from pages.fdr import run
+                run(commune, annees_session, departement)
+        except ImportError as e:
+            st.error(f"Erreur lors du chargement de la page : {str(e)}")
+        except Exception as e:
+            st.error(f"Erreur lors de l'exécution : {str(e)}")
