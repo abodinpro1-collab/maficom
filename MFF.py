@@ -21,7 +21,7 @@ import kaleido
 from app_fetchers import (
     fetch_commune_fonctionnement,
     fetch_commune_caf,
-    fetch_commune_fiscalite, 
+    fetch_commune_fiscalite,
     fetch_commune_investissement,
     fetch_commune_endettement,
     fetch_commune_fdr
