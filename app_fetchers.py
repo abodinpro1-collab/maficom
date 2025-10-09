@@ -1,4 +1,4 @@
-# app_fetchers.py - Fonctions fetch robustes pour votre app.py
+# app_fetchers.py - Fonctions fetch robustes adaptées aux nouveaux datasets
 import pandas as pd
 import requests
 import streamlit as st
@@ -6,11 +6,29 @@ import re
 from functools import lru_cache
 from difflib import SequenceMatcher
 
+# Mapping des années vers les nouveaux datasets
+DATASETS_MAPPING = {
+    2019: "comptes-individuels-des-communes-fichier-global-2019-2020",
+    2020: "comptes-individuels-des-communes-fichier-global-2019-2020",
+    2021: "comptes-individuels-des-communes-fichier-global-2021",
+    2022: "comptes-individuels-des-communes-fichier-global-2022",
+    2023: "comptes-individuels-des-communes-fichier-global-2023-2024",
+    2024: "comptes-individuels-des-communes-fichier-global-2023-2024"
+}
+
+def get_dataset_for_year(annee):
+    """Retourne le dataset approprié pour une année donnée"""
+    return DATASETS_MAPPING.get(annee, "comptes-individuels-des-communes-fichier-global-2023-2024")
+
+def get_api_url_for_year(annee):
+    """Retourne l'URL de l'API pour une année donnée"""
+    dataset = get_dataset_for_year(annee)
+    return f"https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/{dataset}/records"
+
 class AppRobustFetcher:
-    """Fetcher robuste spécifique pour app.py et génération PDF"""
+    """Fetcher robuste adapté aux nouveaux datasets"""
     
     def __init__(self):
-        self.api_base_url = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/comptes-individuels-des-communes-fichier-global-a-compter-de-2000/records"
         self._cache = {}
     
     @lru_cache(maxsize=500)
@@ -34,28 +52,34 @@ class AppRobustFetcher:
         variants = []
         search_terms = self._generate_search_terms(commune)
         
-        for term in search_terms:
-            where_clause = f'inom LIKE "%{term}%"'
-            if departement:
-                where_clause += f' AND dep="{departement}"'
-            where_clause += ' AND an IN ("2019","2020","2021","2022","2023")'
+        # Rechercher dans tous les datasets récents
+        datasets_to_search = list(set(DATASETS_MAPPING.values()))
+        
+        for dataset in datasets_to_search:
+            api_url = f"https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/{dataset}/records"
             
-            params = {"where": where_clause, "limit": 50, "select": "inom,dep"}
-            
-            try:
-                response = requests.get(self.api_base_url, params=params, timeout=10)
-                data = response.json()
+            for term in search_terms:
+                where_clause = f'inom LIKE "%{term}%"'
+                if departement:
+                    where_clause += f' AND dep="{departement}"'
+                where_clause += ' AND an IN ("2019","2020","2021","2022","2023","2024")'
                 
-                if "results" in data:
-                    for record in data["results"]:
-                        nom = record.get("inom", "")
-                        dept = record.get("dep", "")
-                        if nom and self._is_similar_commune(commune, nom):
-                            variant = {"nom": nom, "departement": dept}
-                            if variant not in variants:
-                                variants.append(variant)
-            except:
-                continue
+                params = {"where": where_clause, "limit": 50, "select": "inom,dep"}
+                
+                try:
+                    response = requests.get(api_url, params=params, timeout=10)
+                    data = response.json()
+                    
+                    if "results" in data:
+                        for record in data["results"]:
+                            nom = record.get("inom", "")
+                            dept = record.get("dep", "")
+                            if nom and self._is_similar_commune(commune, nom):
+                                variant = {"nom": nom, "departement": dept}
+                                if variant not in variants:
+                                    variants.append(variant)
+                except:
+                    continue
         
         if not variants:
             variants = [{"nom": commune, "departement": departement or ""}]
@@ -85,11 +109,11 @@ def get_app_fetcher():
     return AppRobustFetcher()
 
 # ==============================================================
-# FONCTIONS FETCH ROBUSTES POUR APP.PY
+# FONCTIONS FETCH ADAPTÉES AUX NOUVEAUX DATASETS
 # ==============================================================
 
 def fetch_commune_fonctionnement(commune, annees, departement):
-    """Version robuste - REMPLACE votre fonction dans app.py"""
+    """Version adaptée aux nouveaux datasets - garde votre logique exacte"""
     fetcher = get_app_fetcher()
     variants = fetcher.find_commune_variants(commune, departement)
     
@@ -97,6 +121,7 @@ def fetch_commune_fonctionnement(commune, annees, departement):
     
     for annee in annees:
         annee_trouvee = False
+        api_url = get_api_url_for_year(annee)  # URL adaptée à l'année
         
         for variant in variants:
             commune_nom = variant["nom"]
@@ -109,7 +134,7 @@ def fetch_commune_fonctionnement(commune, annees, departement):
             params = {"where": where_clause, "limit": 100}
             
             try:
-                response = requests.get(fetcher.api_base_url, params=params, timeout=10)
+                response = requests.get(api_url, params=params, timeout=10)
                 data = response.json()
                 
                 if "results" not in data or not data["results"]:
@@ -167,7 +192,7 @@ def fetch_commune_fonctionnement(commune, annees, departement):
     return pd.concat(df_list, ignore_index=True) if df_list else pd.DataFrame()
 
 def fetch_commune_investissement(commune, annees, departement):
-    """Version robuste - REMPLACE votre fonction dans app.py"""
+    """Version adaptée aux nouveaux datasets"""
     fetcher = get_app_fetcher()
     variants = fetcher.find_commune_variants(commune, departement)
     
@@ -175,6 +200,7 @@ def fetch_commune_investissement(commune, annees, departement):
     
     for an in annees:
         annee_trouvee = False
+        api_url = get_api_url_for_year(an)
         
         for variant in variants:
             commune_nom = variant["nom"]
@@ -187,7 +213,7 @@ def fetch_commune_investissement(commune, annees, departement):
             params = {"where": where_clause, "limit": 100}
             
             try:
-                r = requests.get(fetcher.api_base_url, params=params, timeout=10)
+                r = requests.get(api_url, params=params, timeout=10)
                 data = r.json().get("results", [])
                 
                 if data:
@@ -220,7 +246,7 @@ def fetch_commune_investissement(commune, annees, departement):
     return pd.DataFrame()
 
 def fetch_commune_caf(commune, annees, departement):
-    """Version robuste - REMPLACE votre fonction dans app.py"""
+    """Version adaptée aux nouveaux datasets"""
     fetcher = get_app_fetcher()
     variants = fetcher.find_commune_variants(commune, departement)
     
@@ -228,6 +254,7 @@ def fetch_commune_caf(commune, annees, departement):
     
     for annee in annees:
         annee_trouvee = False
+        api_url = get_api_url_for_year(annee)
         
         for variant in variants:
             commune_nom = variant["nom"]
@@ -240,7 +267,7 @@ def fetch_commune_caf(commune, annees, departement):
             params = {"where": where_clause, "limit": 100}
             
             try:
-                response = requests.get(fetcher.api_base_url, params=params, timeout=10)
+                response = requests.get(api_url, params=params, timeout=10)
                 data = response.json()
 
                 if "results" not in data or not data["results"]:
@@ -294,7 +321,7 @@ def fetch_commune_caf(commune, annees, departement):
         return pd.DataFrame()
 
 def fetch_commune_fiscalite(commune, annees, departement):
-    """Version robuste - REMPLACE votre fonction dans app.py"""
+    """Version adaptée aux nouveaux datasets"""
     fetcher = get_app_fetcher()
     variants = fetcher.find_commune_variants(commune, departement)
     
@@ -302,6 +329,7 @@ def fetch_commune_fiscalite(commune, annees, departement):
     
     for annee in annees:
         annee_trouvee = False
+        api_url = get_api_url_for_year(annee)
         
         for variant in variants:
             commune_nom = variant["nom"]
@@ -314,7 +342,7 @@ def fetch_commune_fiscalite(commune, annees, departement):
             params = {"where": where_clause, "limit": 100}
             
             try:
-                response = requests.get(fetcher.api_base_url, params=params, timeout=10)
+                response = requests.get(api_url, params=params, timeout=10)
                 data = response.json()
 
                 if "results" not in data or not data["results"]:
@@ -364,7 +392,7 @@ def fetch_commune_fiscalite(commune, annees, departement):
     return pd.DataFrame()
 
 def fetch_commune_endettement(commune, annees, departement):
-    """Version robuste - REMPLACE votre fonction dans app.py"""
+    """Version adaptée aux nouveaux datasets"""
     fetcher = get_app_fetcher()
     variants = fetcher.find_commune_variants(commune, departement)
     
@@ -372,6 +400,7 @@ def fetch_commune_endettement(commune, annees, departement):
     
     for an in annees:
         annee_trouvee = False
+        api_url = get_api_url_for_year(an)
         
         for variant in variants:
             commune_nom = variant["nom"]
@@ -384,7 +413,7 @@ def fetch_commune_endettement(commune, annees, departement):
             params = {"where": where_clause, "limit": 100}
             
             try:
-                r = requests.get(fetcher.api_base_url, params=params, timeout=10)
+                r = requests.get(api_url, params=params, timeout=10)
                 data = r.json().get("results", [])
                 
                 if data:
@@ -419,7 +448,7 @@ def fetch_commune_endettement(commune, annees, departement):
     return pd.DataFrame()
 
 def fetch_commune_fdr(commune, annees, departement):
-    """Version robuste - REMPLACE votre fonction dans app.py"""
+    """Version adaptée aux nouveaux datasets"""
     fetcher = get_app_fetcher()
     variants = fetcher.find_commune_variants(commune, departement)
     
@@ -427,6 +456,7 @@ def fetch_commune_fdr(commune, annees, departement):
     
     for annee in annees:
         annee_trouvee = False
+        api_url = get_api_url_for_year(annee)
         
         for variant in variants:
             commune_nom = variant["nom"]
@@ -439,7 +469,7 @@ def fetch_commune_fdr(commune, annees, departement):
             params = {"where": where_clause, "limit": 100}
             
             try:
-                response = requests.get(fetcher.api_base_url, params=params, timeout=10)
+                response = requests.get(api_url, params=params, timeout=10)
                 data = response.json()
 
                 if "results" not in data or not data["results"]:

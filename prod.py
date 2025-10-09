@@ -27,10 +27,26 @@ from app_fetchers import (
     fetch_commune_fdr
 )
 
+# Mapping des années vers les nouveaux datasets
+DATASETS_MAPPING = {
+    2019: "comptes-individuels-des-communes-fichier-global-2019-2020",
+    2020: "comptes-individuels-des-communes-fichier-global-2019-2020",
+    2021: "comptes-individuels-des-communes-fichier-global-2021",
+    2022: "comptes-individuels-des-communes-fichier-global-2022",
+    2023: "comptes-individuels-des-communes-fichier-global-2023-2024",
+    2024: "comptes-individuels-des-communes-fichier-global-2023-2024"
+}
+
+def get_dataset_for_year(annee):
+    """Retourne le dataset approprié pour une année donnée"""
+    return DATASETS_MAPPING.get(annee, "comptes-individuels-des-communes-fichier-global-2023-2024")
+
 @st.cache_data(show_spinner=False)
-def search_commune(nom_commune, annee_reference=2023):
+def search_commune(nom_commune, annee_reference=2024):
     """Recherche une commune et retourne les informations incluant le département"""
-    url = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/comptes-individuels-des-communes-fichier-global-a-compter-de-2000/records"
+    dataset = get_dataset_for_year(annee_reference)
+    url = f"https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/{dataset}/records"
+    
     params = {
         "where": f'an="{annee_reference}" AND inom="{nom_commune}"',
         "limit": 100
@@ -676,7 +692,7 @@ if "commune" not in st.session_state:
 if "departement" not in st.session_state:
     st.session_state["departement"] = None
 if "annees" not in st.session_state:
-    st.session_state["annees"] = list(range(2019, 2024))  # Par défaut 2019–2023
+    st.session_state["annees"] = list(range(2019, 2025))  # Par défaut 
 
 commune_selectionnee = st.session_state["commune"]
 departement_selectionne = st.session_state["departement"]
@@ -746,7 +762,7 @@ if page == "Accueil":
     with col2:
         annees = st.multiselect(
             "Sélectionnez les années à afficher :",
-            options=list(range(2019, 2024)),
+            options=list(range(2019, 2025)),
             default=st.session_state["annees"]
         )
         st.session_state["annees"] = annees

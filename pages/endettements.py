@@ -6,11 +6,29 @@ import re
 from functools import lru_cache
 from difflib import SequenceMatcher
 
+# Mapping des années vers les nouveaux datasets
+DATASETS_MAPPING = {
+    2019: "comptes-individuels-des-communes-fichier-global-2019-2020",
+    2020: "comptes-individuels-des-communes-fichier-global-2019-2020",
+    2021: "comptes-individuels-des-communes-fichier-global-2021",
+    2022: "comptes-individuels-des-communes-fichier-global-2022",
+    2023: "comptes-individuels-des-communes-fichier-global-2023-2024",
+    2024: "comptes-individuels-des-communes-fichier-global-2023-2024"
+}
+
+def get_dataset_for_year(annee):
+    """Retourne le dataset approprié pour une année donnée"""
+    return DATASETS_MAPPING.get(annee, "comptes-individuels-des-communes-fichier-global-2023-2024")
+
+def get_api_url_for_year(annee):
+    """Retourne l'URL de l'API pour une année donnée"""
+    dataset = get_dataset_for_year(annee)
+    return f"https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/{dataset}/records"
+
 class RobustCommuneFetcher:
-    """Version autonome du fetcher - pas d'import externe"""
+    """Version adaptée aux nouveaux datasets"""
     
     def __init__(self):
-        self.api_base_url = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/comptes-individuels-des-communes-fichier-global-a-compter-de-2000/records"
         self._cache = {}
     
     @lru_cache(maxsize=500)
@@ -31,7 +49,7 @@ class RobustCommuneFetcher:
         return re.sub(r'\s+', ' ', normalized).strip()
     
     def find_commune_variants(self, commune, departement=None):
-        """Trouve les variantes d'une commune"""
+        """Trouve les variantes d'une commune dans tous les datasets"""
         cache_key = f"{commune}_{departement}"
         if cache_key in self._cache:
             return self._cache[cache_key]
@@ -39,28 +57,34 @@ class RobustCommuneFetcher:
         variants = []
         search_terms = self._generate_search_terms(commune)
         
-        for term in search_terms:
-            where_clause = f'inom LIKE "%{term}%"'
-            if departement:
-                where_clause += f' AND dep="{departement}"'
-            where_clause += ' AND an IN ("2019","2020","2021","2022","2023")'
+        # Rechercher dans tous les datasets
+        datasets_to_search = list(set(DATASETS_MAPPING.values()))
+        
+        for dataset in datasets_to_search:
+            api_url = f"https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/{dataset}/records"
             
-            params = {"where": where_clause, "limit": 50, "select": "inom,dep"}
-            
-            try:
-                response = requests.get(self.api_base_url, params=params, timeout=10)
-                data = response.json()
+            for term in search_terms:
+                where_clause = f'inom LIKE "%{term}%"'
+                if departement:
+                    where_clause += f' AND dep="{departement}"'
+                where_clause += ' AND an IN ("2019","2020","2021","2022","2023","2024")'
                 
-                if "results" in data:
-                    for record in data["results"]:
-                        nom = record.get("inom", "")
-                        dept = record.get("dep", "")
-                        if nom and self._is_similar_commune(commune, nom):
-                            variant = {"nom": nom, "departement": dept}
-                            if variant not in variants:
-                                variants.append(variant)
-            except:
-                continue
+                params = {"where": where_clause, "limit": 50, "select": "inom,dep"}
+                
+                try:
+                    response = requests.get(api_url, params=params, timeout=10)
+                    data = response.json()
+                    
+                    if "results" in data:
+                        for record in data["results"]:
+                            nom = record.get("inom", "")
+                            dept = record.get("dep", "")
+                            if nom and self._is_similar_commune(commune, nom):
+                                variant = {"nom": nom, "departement": dept}
+                                if variant not in variants:
+                                    variants.append(variant)
+                except:
+                    continue
         
         if not variants:
             variants = [{"nom": commune, "departement": departement or ""}]
@@ -95,7 +119,7 @@ def get_fetcher():
     return RobustCommuneFetcher()
 
 def fetch_commune_endettement(commune, annees, departement=None):
-    """Version robuste du fetch endettement - AUTONOME"""
+    """Version robuste adaptée aux nouveaux datasets"""
     
     fetcher = get_fetcher()
     
@@ -111,6 +135,7 @@ def fetch_commune_endettement(commune, annees, departement=None):
     
     for annee in annees:
         annee_trouvee = False
+        api_url = get_api_url_for_year(annee)  # URL adaptée à l'année
         
         # Essaye chaque variante pour cette année
         for variant in variants:
@@ -124,7 +149,7 @@ def fetch_commune_endettement(commune, annees, departement=None):
             params = {"where": where_clause, "limit": 100}
             
             try:
-                r = requests.get(fetcher.api_base_url, params=params, timeout=10)
+                r = requests.get(api_url, params=params, timeout=10)
                 data = r.json().get("results", [])
 
                 if data:
@@ -181,19 +206,22 @@ def fetch_commune_endettement(commune, annees, departement=None):
     return pd.DataFrame()
 
 def run(commune=None, annees=None, departement=None):
-    """Votre fonction run - CODE ORIGINAL + fetch robuste"""
+    """Votre fonction run - CODE ORIGINAL + fetch robuste mis à jour"""
     st.title("📉 Endettement des communes")
 
     commune_selectionnee = st.text_input("Nom de la commune :", value=commune or "RENAGE")
     departement_selectionne = st.text_input('Département (optionnel) :', value=departement or "")
+    
+    # Années étendues pour inclure 2024
+    annees_disponibles = list(range(2024, 2018, -1))
     annees = st.multiselect(
         "Sélectionnez les années à afficher :",
-        options=list(range(2023, 2018, -1)),
-        default=annees or list(range(2023, 2018, -1))
+        options=annees_disponibles,
+        default=annees or annees_disponibles
     )
 
     if commune_selectionnee and annees:
-        # ✅ VERSION ROBUSTE - sans import externe
+        # ✅ VERSION ROBUSTE ADAPTÉE AUX NOUVEAUX DATASETS
         df = fetch_commune_endettement(commune_selectionnee, annees, departement_selectionne)
         
         if not df.empty:
