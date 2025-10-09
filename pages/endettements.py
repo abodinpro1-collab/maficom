@@ -154,21 +154,21 @@ def fetch_commune_endettement(commune, annees, departement=None):
 
                 if data:
                     df = pd.DataFrame(data)
-                    cols = ['an', 'fdette', 'mdette', 'fcaf', 'mcaf', 'fcafn', 'mcafn','fprod','mprod']
+                    cols = ['an', 'fdet2cal', 'mdet2cal', 'fcaf', 'mcaf', 'fcafn', 'mcafn','fprod','mprod']
                     df_exist = [c for c in cols if c in df.columns]
                     
                     if df_exist:
                         df = df[df_exist].copy()
 
                         # Calculs identiques à votre version
-                        df['Dette / Habitant Commune'] = df['fdette']
-                        df['Dette / Habitant Moyenne'] = df['mdette']
+                        df['Dette / Habitant Commune'] = df['fdet2cal']
+                        df['Dette / Habitant Moyenne'] = df['mdet2cal']
                         
                         # Calculs sécurisés avec vérification de division par zéro
-                        df['Dettes / RRF Commune'] = (df['fdette'] / df['fprod'].replace(0, pd.NA) * 100).round(2)
-                        df['Dettes / RRF Moyenne'] = (df['mdette'] / df['mprod'].replace(0, pd.NA) * 100).round(2)
-                        df['Dette en années de CAF Brute Commune'] = (df['fdette'] / df['fcaf'].replace(0, pd.NA)).round(2)
-                        df['Dette en années de CAF Brute Moyenne'] = (df['mdette'] / df['mcaf'].replace(0, pd.NA)).round(2)
+                        df['Dettes / RRF Commune'] = (df['fdet2cal'] / df['fprod'].replace(0, pd.NA) * 100).round(2)
+                        df['Dettes / RRF Moyenne'] = (df['mdet2cal'] / df['mprod'].replace(0, pd.NA) * 100).round(2)
+                        df['Dette en années de CAF Brute Commune'] = (df['fdet2cal'] / df['fcaf'].replace(0, pd.NA)).round(2)
+                        df['Dette en années de CAF Brute Moyenne'] = (df['mdet2cal'] / df['mcaf'].replace(0, pd.NA)).round(2)
                         df['Part du remboursement de la dette / CAF Brute Commune'] = (
                             ((df['fcaf'] - df['fcafn']) / df['fcaf'].replace(0, pd.NA) * 100).round(2)
                         )
