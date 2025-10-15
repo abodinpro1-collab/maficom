@@ -248,7 +248,7 @@ def fetch_commune_investissement(commune, annees, departement=None):
 
 def run(commune=None, annees=None, departement=None):
     """Votre fonction run - CODE ORIGINAL + fetch robuste mis à jour"""
-    st.title("Investissements des communes")
+    st.title("🏗️ Investissements des communes")
 
     commune_selectionnee = st.text_input("Nom de la commune :", value=commune or "RENAGE")
     departement_selectionne = st.text_input('Département (optionnel) :', value=departement or "")

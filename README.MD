@@ -172,15 +172,12 @@ Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de
 
 **Arthur Bodin**
 
-- 📧 Email : [votre-email@exemple.com]
-- 💼 LinkedIn : [Votre profil LinkedIn]
-- 🐙 GitHub : [@votre-username](https://github.com/votre-username)
+- 📧 Email : [a.bodinpro1@gmail.com]
 
 ## 🙏 Remerciements
 
 - **Direction Générale des Finances Publiques (DGFiP)** pour les données ouvertes
 - **Streamlit** pour le framework
-- Tous les contributeurs du projet
 
 ## 📊 Statistiques du projet
 
