@@ -36,9 +36,18 @@ class AppRobustFetcher:
         if not name:
             return ""
         normalized = name.strip().upper()
+
+        # Normaliser les tirets avant D'/L' en espaces pour comparaison uniforme
+        normalized = re.sub(r"-([DL]')", r" \1", normalized)
+
+        # Normaliser les espaces dans les parenthèses (LA ) -> (LA)
+        normalized = re.sub(r'\(\s*(LA|LE|LES|L\'|D\')\s*\)', r'(\1)', normalized)
+
         patterns = [
             (r'^(LA|LE|LES)\s+(.+)$', r'\2 (\1)'),
             (r'^(.+)\s+\((LA|LE|LES)\)$', r'\2 \1'),
+            (r"^(L'|D')\s*(.+)$", r"\2 (\1)"),                # L'ILE-SAINT-DENIS → ILE-SAINT-DENIS (L')
+            (r"^(.+)\s*\((L'|D')\)$", r"\1 (\2)"),
         ]
         for pattern, replacement in patterns:
             normalized = re.sub(pattern, replacement, normalized, flags=re.IGNORECASE)
@@ -88,15 +97,66 @@ class AppRobustFetcher:
         return variants
     
     def _generate_search_terms(self, commune):
+        """Génère les termes de recherche avec toutes les variantes possibles"""
         terms = [commune]
-        if commune.upper().startswith(('LA ', 'LE ', 'LES ')):
-            base = commune[3:] if commune.upper().startswith('LA ') else commune[4:] if commune.upper().startswith('LES ') else commune[3:]
-            terms.extend([base, f"{base} (LA)"])
+        commune_upper = commune.upper()
+
+        # Variantes avec/sans tiret pour D' et L'
+        if " D'" in commune_upper or " L'" in commune_upper:
+            terms.append(re.sub(r"\s([DL]')", r"-\1", commune, flags=re.IGNORECASE))
+        if "-D'" in commune_upper or "-L'" in commune_upper:
+            terms.append(re.sub(r"-([DL]')", r" \1", commune, flags=re.IGNORECASE))
+
+        # Gestion des articles LA/LE/LES en début
+        if commune_upper.startswith('LA '):
+            base = commune[3:]
+            base_tiret = re.sub(r"\s([DL]')", r"-\1", base, flags=re.IGNORECASE)
+            terms.extend([
+                base, base_tiret,
+                f"{base} (LA)", f"{base} (LA )",
+                f"{base_tiret} (LA)", f"{base_tiret} (LA )"
+            ])
+        elif commune_upper.startswith('LE '):
+            base = commune[3:]
+            base_tiret = re.sub(r"\s([DL]')", r"-\1", base, flags=re.IGNORECASE)
+            terms.extend([
+                base, base_tiret,
+                f"{base} (LE)", f"{base} (LE )",
+                f"{base_tiret} (LE)", f"{base_tiret} (LE )"
+            ])
+        elif commune_upper.startswith('LES '):
+            base = commune[4:]
+            base_tiret = re.sub(r"\s([DL]')", r"-\1", base, flags=re.IGNORECASE)
+            terms.extend([
+                base, base_tiret,
+                f"{base} (LES)", f"{base} (LES )",
+                f"{base_tiret} (LES)", f"{base_tiret} (LES )"
+            ])
+
+        # Gestion des articles entre parenthèses
         if '(' in commune:
             base = re.sub(r'\s*\([^)]+\)\s*', '', commune).strip()
-            if '(LA)' in commune.upper():
-                terms.append(f"LA {base}")
-        return list(set(terms))
+            article_match = re.search(r'\(\s*(LA|LE|LES|L\'|D\')\s*\)', commune_upper)
+            if article_match:
+                article = article_match.group(1)
+                base_tiret = re.sub(r"\s([DL]')", r"-\1", base, flags=re.IGNORECASE)
+                base_espace = re.sub(r"-([DL]')", r" \1", base, flags=re.IGNORECASE)
+                terms.extend([
+                    f"{article} {base}",
+                    f"{article} {base_tiret}",
+                    f"{article} {base_espace}"
+                ])
+
+        # Supprimer les doublons tout en gardant l'ordre
+        seen = set()
+        unique_terms = []
+        for term in terms:
+            term_upper = term.upper()
+            if term_upper not in seen:
+                seen.add(term_upper)
+                unique_terms.append(term)
+
+        return unique_terms
     
     def _is_similar_commune(self, search_commune, found_commune, threshold=0.8):
         norm1 = self.normalize_commune_name(search_commune)
