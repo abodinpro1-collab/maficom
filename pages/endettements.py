@@ -38,6 +38,10 @@ class RobustCommuneFetcher:
             return ""
         
         normalized = name.strip().upper()
+
+        normalized = re.sub(r'\s+CNE\s+NOUVELLE\s*$', '', normalized)
+        normalized = re.sub(r'\s+COMMUNE\s+NOUVELLE\s*$', '', normalized)
+
         patterns = [
             (r'^(LA|LE|LES)\s+(.+)$', r'\2 (\1)'),
             (r'^(.+)\s+\((LA|LE|LES)\)$', r'\2 \1'),
