@@ -37,6 +37,11 @@ class AppRobustFetcher:
             return ""
         normalized = name.strip().upper()
 
+        # Supprimer le suffixe "commune nouvelle" présent dans les datasets 2019-2020
+        # ex: "CHATEAUGIRON CNE NOUVELLE" → "CHATEAUGIRON"
+        normalized = re.sub(r'\s+CNE\s+NOUVELLE\s*$', '', normalized)
+        normalized = re.sub(r'\s+COMMUNE\s+NOUVELLE\s*$', '', normalized)
+
         # Normaliser les tirets avant D'/L' en espaces pour comparaison uniforme
         normalized = re.sub(r"-([DL]')", r" \1", normalized)
 
