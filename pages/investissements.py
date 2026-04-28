@@ -38,6 +38,12 @@ class RobustCommuneFetcher:
             return ""
         
         normalized = name.strip().upper()
+
+        # Supprimer le suffixe "commune nouvelle" présent dans les datasets 2019-2020
+        # ex: "CHATEAUGIRON CNE NOUVELLE" → "CHATEAUGIRON"
+        normalized = re.sub(r'\s+CNE\s+NOUVELLE\s*$', '', normalized)
+        normalized = re.sub(r'\s+COMMUNE\s+NOUVELLE\s*$', '', normalized)
+
         patterns = [
             (r'^(LA|LE|LES)\s+(.+)$', r'\2 (\1)'),
             (r'^(.+)\s+\((LA|LE|LES)\)$', r'\2 \1'),
