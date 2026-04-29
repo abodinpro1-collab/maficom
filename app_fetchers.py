@@ -25,12 +25,14 @@ def get_api_url_for_year(annee):
     dataset = get_dataset_for_year(annee)
     return f"https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/{dataset}/records"
 
+_VARIANT_CACHE_VERSION = "v2"  # Incrémenter après chaque modification de la logique de variantes
+
 class AppRobustFetcher:
     """Fetcher robuste adapté aux nouveaux datasets"""
-    
+
     def __init__(self):
         self._cache = {}
-    
+
     @lru_cache(maxsize=500)
     def normalize_commune_name(self, name):
         if not name:
@@ -59,7 +61,7 @@ class AppRobustFetcher:
         return re.sub(r'\s+', ' ', normalized).strip()
     
     def find_commune_variants(self, commune, departement=None):
-        cache_key = f"{commune}_{departement}"
+        cache_key = f"{_VARIANT_CACHE_VERSION}_{commune}_{departement}"
         if cache_key in self._cache:
             return self._cache[cache_key]
         
