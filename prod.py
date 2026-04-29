@@ -70,14 +70,14 @@ def search_commune(nom_commune, annee_reference=2024):
 
 @st.cache_data(show_spinner=False)
 def get_all_commune_data(commune, annees, departement):
-    """Récupère toutes les données financières pour une commune"""
+    """Récupère toutes les données financières pour une commune - v2"""
     data = {}
-    data['fonctionnement'] = fetch_commune_fonctionnement(commune, annees,departement)
-    data['caf'] = fetch_commune_caf(commune, annees,departement)
-    data['fiscalite'] = fetch_commune_fiscalite(commune, annees,departement)
-    data['endettement'] = fetch_commune_endettement(commune, annees, departement)
-    data['investissement'] = fetch_commune_investissement(commune, annees, departement)
-    data['fdr'] = fetch_commune_fdr(commune, annees, departement)
+    data['fonctionnement'] = fetch_commune_fonctionnement(commune, tuple(annees), departement)
+    data['caf'] = fetch_commune_caf(commune, tuple(annees), departement)
+    data['fiscalite'] = fetch_commune_fiscalite(commune, tuple(annees), departement)
+    data['endettement'] = fetch_commune_endettement(commune, tuple(annees), departement)
+    data['investissement'] = fetch_commune_investissement(commune, tuple(annees), departement)
+    data['fdr'] = fetch_commune_fdr(commune, tuple(annees), departement)
     return data
 
 import plotly.io as pio
