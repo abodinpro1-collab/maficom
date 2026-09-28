@@ -13,19 +13,26 @@ DATASETS_MAPPING = {
     2021: "comptes-individuels-des-communes-fichier-global-2021",
     2022: "comptes-individuels-des-communes-fichier-global-2022",
     2023: "comptes-individuels-des-communes-fichier-global-2023-2024",
-    2024: "comptes-individuels-des-communes-fichier-global-2023-2024"
+    2024: "comptes-individuels-des-communes-fichier-global-2023-2024",
+    2025: "comptes-individuels-des-communes-fichier-global-2025"
 }
+
+# Années disponibles, déduites du mapping (ajouter une année = ajouter une ligne ci-dessus)
+ANNEES_DISPONIBLES = sorted(DATASETS_MAPPING)
+DERNIERE_ANNEE = ANNEES_DISPONIBLES[-1]
+# Filtre ODSQL sur les années couvertes : "2019","2020",...
+_FILTRE_ANNEES = ",".join(f'"{a}"' for a in ANNEES_DISPONIBLES)
 
 def get_dataset_for_year(annee):
     """Retourne le dataset approprié pour une année donnée"""
-    return DATASETS_MAPPING.get(annee, "comptes-individuels-des-communes-fichier-global-2023-2024")
+    return DATASETS_MAPPING.get(annee, DATASETS_MAPPING[DERNIERE_ANNEE])
 
 def get_api_url_for_year(annee):
     """Retourne l'URL de l'API pour une année donnée"""
     dataset = get_dataset_for_year(annee)
     return f"https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/{dataset}/records"
 
-_VARIANT_CACHE_VERSION = "v2"  # Incrémenter après chaque modification de la logique de variantes
+_VARIANT_CACHE_VERSION = "v3"  # Incrémenter après chaque modification de la logique de variantes (ou ajout d'un dataset)
 
 class AppRobustFetcher:
     """Fetcher robuste adapté aux nouveaux datasets"""
@@ -78,7 +85,7 @@ class AppRobustFetcher:
                 where_clause = f'inom LIKE "%{term}%"'
                 if departement:
                     where_clause += f' AND dep="{departement}"'
-                where_clause += ' AND an IN ("2019","2020","2021","2022","2023","2024")'
+                where_clause += f' AND an IN ({_FILTRE_ANNEES})'
                 
                 params = {"where": where_clause, "limit": 50, "select": "inom,dep"}
                 
