@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Focus Financier** is a Streamlit web application for analyzing French municipality financial data. It fetches data from the French government's open data API (data.economie.gouv.fr) and provides interactive visualizations comparing municipalities to their strata averages.
 
 The application features:
-- Multi-year financial analysis (2019-2024)
+- Multi-year financial analysis (2019-2025)
 - Six analysis modules: Fonctionnement, CAF, Fiscalité, Endettement, Investissement, Fonds de roulement
 - PDF/Excel/CSV export capabilities
 - Intelligent commune name variant handling (e.g., "LA ROCHELLE" vs "ROCHELLE (LA)")
@@ -48,10 +48,13 @@ DATASETS_MAPPING = {
     2021: "comptes-individuels-des-communes-fichier-global-2021",
     2022: "comptes-individuels-des-communes-fichier-global-2022",
     2023: "comptes-individuels-des-communes-fichier-global-2023-2024",
-    2024: "comptes-individuels-des-communes-fichier-global-2023-2024"
+    2024: "comptes-individuels-des-communes-fichier-global-2023-2024",
+    2025: "comptes-individuels-des-communes-fichier-global-2025"
 }
 ```
 Functions like `get_dataset_for_year()` and `get_api_url_for_year()` handle dataset selection automatically.
+
+`ANNEES_DISPONIBLES`, `DERNIERE_ANNEE` and the `an IN (...)` filter used by the variant search are all derived from `DATASETS_MAPPING`. To add a new year, add one line to the mapping in `app_fetchers.py` **and** in each `pages/*.py` module (each keeps its own copy; `prod.py` imports it from `app_fetchers.py`), then bump `_VARIANT_CACHE_VERSION` in `app_fetchers.py`.
 
 ### Pages Module
 Each analysis module in `pages/` follows the same pattern:
@@ -64,7 +67,7 @@ Each analysis module in `pages/` follows the same pattern:
 prod.py uses `st.session_state` to maintain:
 - `commune`: Selected commune name
 - `departement`: Department code
-- `annees`: List of years to analyze (default: 2019-2024)
+- `annees`: List of years to analyze (default: all years in `ANNEES_DISPONIBLES`, 2019-2025)
 
 ### Commune Name Handling
 The `AppRobustFetcher` class in app_fetchers.py handles commune name variants:

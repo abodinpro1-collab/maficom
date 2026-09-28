@@ -28,8 +28,8 @@ if page == "Accueil":
     commune_input = st.text_input("Nom de la commune :", value="RENAGE")
     annees = st.multiselect(
         "Sélectionnez les années à afficher :",
-        options=list(range(2019, 2024)),
-        default=list(range(2019, 2024))
+        options=list(range(2019, 2026)),
+        default=list(range(2019, 2026))
     )
 
 # -----------------------

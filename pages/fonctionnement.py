@@ -13,12 +13,19 @@ DATASETS_MAPPING = {
     2021: "comptes-individuels-des-communes-fichier-global-2021",
     2022: "comptes-individuels-des-communes-fichier-global-2022",
     2023: "comptes-individuels-des-communes-fichier-global-2023-2024",
-    2024: "comptes-individuels-des-communes-fichier-global-2023-2024"
+    2024: "comptes-individuels-des-communes-fichier-global-2023-2024",
+    2025: "comptes-individuels-des-communes-fichier-global-2025"
 }
+
+# Années disponibles, déduites du mapping (ajouter une année = ajouter une ligne ci-dessus)
+ANNEES_DISPONIBLES = sorted(DATASETS_MAPPING)
+DERNIERE_ANNEE = ANNEES_DISPONIBLES[-1]
+# Filtre ODSQL sur les années couvertes : "2019","2020",...
+_FILTRE_ANNEES = ",".join(f'"{a}"' for a in ANNEES_DISPONIBLES)
 
 def get_dataset_for_year(annee):
     """Retourne le dataset approprié pour une année donnée"""
-    return DATASETS_MAPPING.get(annee, "comptes-individuels-des-communes-fichier-global-2023-2024")
+    return DATASETS_MAPPING.get(annee, DATASETS_MAPPING[DERNIERE_ANNEE])
 
 def get_api_url_for_year(annee):
     """Retourne l'URL de l'API pour une année donnée"""
@@ -71,7 +78,7 @@ class RobustCommuneFetcher:
                 where_clause = f'inom LIKE "%{term}%"'
                 if departement:
                     where_clause += f' AND dep="{departement}"'
-                where_clause += ' AND an IN ("2019","2020","2021","2022","2023","2024")'
+                where_clause += f' AND an IN ({_FILTRE_ANNEES})'
                 
                 params = {"where": where_clause, "limit": 50, "select": "inom,dep"}
                 
@@ -207,8 +214,8 @@ def run(commune=None, annees=None, departement=None):
     commune_selectionnee = st.text_input("Nom de la commune :", value=commune or "RENAGE")
     departement_selectionne = st.text_input('Département (optionnel) :', value=departement or "")
     
-    # Années étendues pour inclure 2024
-    annees_disponibles = list(range(2024, 2018, -1))
+    # Années disponibles, de la plus récente à la plus ancienne
+    annees_disponibles = ANNEES_DISPONIBLES[::-1]
     annees = st.multiselect(
         "Sélectionnez les années à afficher :",
         options=annees_disponibles,

@@ -24,40 +24,31 @@ from app_fetchers import (
     fetch_commune_fiscalite,
     fetch_commune_investissement,
     fetch_commune_endettement,
-    fetch_commune_fdr
+    fetch_commune_fdr,
+    ANNEES_DISPONIBLES,
+    DERNIERE_ANNEE,
+    get_api_url_for_year
 )
 
-# Mapping des années vers les nouveaux datasets
-DATASETS_MAPPING = {
-    2019: "comptes-individuels-des-communes-fichier-global-2019-2020",
-    2020: "comptes-individuels-des-communes-fichier-global-2019-2020",
-    2021: "comptes-individuels-des-communes-fichier-global-2021",
-    2022: "comptes-individuels-des-communes-fichier-global-2022",
-    2023: "comptes-individuels-des-communes-fichier-global-2023-2024",
-    2024: "comptes-individuels-des-communes-fichier-global-2023-2024"
-}
-
-def get_dataset_for_year(annee):
-    """Retourne le dataset approprié pour une année donnée"""
-    return DATASETS_MAPPING.get(annee, "comptes-individuels-des-communes-fichier-global-2023-2024")
-
 @st.cache_data(show_spinner=False)
-def search_commune(nom_commune, annee_reference=2024):
+def search_commune(nom_commune, annee_reference=DERNIERE_ANNEE):
     """Recherche une commune et retourne les informations incluant le département"""
-    dataset = get_dataset_for_year(annee_reference)
-    url = f"https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/{dataset}/records"
-    
-    params = {
-        "where": f'an="{annee_reference}" AND inom="{nom_commune}"',
-        "limit": 100
-    }
-    
-    response = requests.get(url, params=params)
-    data = response.json()
-    
-    if "results" not in data or not data["results"]:
+    # Repli sur l'année précédente si la commune est absente de l'année de référence
+    # (commune fusionnée au 1er janvier, dataset le plus récent incomplet...)
+    for annee in (annee_reference, annee_reference - 1):
+        params = {
+            "where": f'an="{annee}" AND inom="{nom_commune}"',
+            "limit": 100
+        }
+
+        response = requests.get(get_api_url_for_year(annee), params=params)
+        data = response.json()
+
+        if data.get("results"):
+            break
+    else:
         return []
-    
+
     communes = []
     for result in data["results"]:
         communes.append({
@@ -692,7 +683,7 @@ if "commune" not in st.session_state:
 if "departement" not in st.session_state:
     st.session_state["departement"] = None
 if "annees" not in st.session_state:
-    st.session_state["annees"] = list(range(2019, 2025))  # Par défaut 
+    st.session_state["annees"] = list(ANNEES_DISPONIBLES)  # Par défaut
 
 commune_selectionnee = st.session_state["commune"]
 departement_selectionne = st.session_state["departement"]
@@ -762,7 +753,7 @@ if page == "Accueil":
     with col2:
         annees = st.multiselect(
             "Sélectionnez les années à afficher :",
-            options=list(range(2019, 2025)),
+            options=ANNEES_DISPONIBLES,
             default=st.session_state["annees"]
         )
         st.session_state["annees"] = annees

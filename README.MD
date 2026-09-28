@@ -102,7 +102,7 @@ focus-financier/
 - Le département est détecté automatiquement
 
 ### 2️⃣ Choix de la période
-- Sélectionnez une ou plusieurs années (2019-2023 disponibles)
+- Sélectionnez une ou plusieurs années (2019-2025 disponibles)
 - Les données sont récupérées automatiquement depuis l'API
 
 ### 3️⃣ Navigation
